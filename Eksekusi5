@@ -1,0 +1,81 @@
+clear;
+clc;
+
+%% Parameter
+global x 
+n=5e-1; %Loss Material Coefficient for Aluminum
+dr=n/2; %Damping Ratio from Loss Material Coefficient
+A=2.5; %Cross Section Area of Impact Attenuator
+L=3; %Long of the Impact Attenuator
+E= 16.18*1e6; %(69*10^6)*0.05; %Modulus Young of Aluminum 6061-T6
+m=600; %estimates for future design
+M=m*1e6;
+k= A*E/L; %Spring Coefficient from Material
+C=2*dr*sqrt(k*m); %Damping Coefficient 
+w=pi; 
+Peaks= 30; %Acceleration peak in m/s^2
+T= 0.02; %Shock Acceleration in S
+Vo= 0; %Initial Velocity in m/s
+wn=sqrt(k/m);
+
+%% Time Code
+Tend = 0.5;
+Tinit = 0;
+int = 1e-4;
+steps = (Tend-Tinit)/int;
+Tspan = [Tinit Tend];
+
+ft=0:int:Tend;
+T1t = linspace(int,Tend,steps); 
+
+tspan = [Tinit Tend];
+x0 = [0 0 0 0];
+
+%% Main Code
+
+x1=zeros(1,steps);
+x2=zeros(1,steps);
+x3=zeros(1,steps);
+x4=zeros(1,steps);
+Am=zeros(1,steps);
+
+%Strain Stress data
+Strain=xlsread('SSC.xlsx', 1, 'A1:A43');
+Stress=xlsread('SSC.xlsx', 1, 'B1:B43');
+Enew=xlsread('SSC.xlsx', 1, 'C1:C43');
+
+w=plot(T1t,Am,'YDataSource','Am');
+
+%Loop
+
+i=2;
+for n=2:1:steps
+
+    [t,x] = ode45(@(t,y) shakerode1(t,y,M,m,C,T,Peaks,k,int,Tend), [int*(n-1) int*(n)], x0);
+           q=length(t);
+           x1(n)=x(q,1);    %Shaker Displacement
+           x2(n)=x(q,2);    %Shaker Velocity
+           x3(n)=x(q,3);    %Car Displacement
+           x4(n)=x(q,4);    %Car Velocity
+           
+           Am(n-1)= (k/m)*x1(n-1) + (C/m)*x2(n-1) - (k/m)*x3(n-1) - (C/m)*x4(n-1);
+           
+    while i==2
+    if (((x3(n)+L) - x1(n))/L) >= Strain(i) && (((x3(n)+L) - x1(n))/L) < Strain(i+1)
+    
+        k=(A*Enew(i))/L;
+
+    else
+        k=k;
+    end
+    i=i+1;
+    if i==43
+        break
+    end
+    end
+    i=2;
+    refreshdata(w,'caller')
+    drawnow; pause(.1)
+end
+
+plot(T1t,Am)
