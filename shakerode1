@@ -1,0 +1,27 @@
+%create function named shakerode
+
+function dydt = shakerode1(t,y,M,m,C,T,Peaks,k,int,Tend)
+%Half-sine condition for the pulse
+
+f=1/(2*T);
+omeg=2*pi*f;
+ft=0:int:Tend;
+
+for i=1:(Tend/int)+1
+if i<=T/int
+P(i)=Peaks;
+else
+P(i)=0;
+end
+end
+
+F = interp1(ft,P.*M.*sin(pi*ft/T),t); 
+
+
+
+dydt = zeros(4,1);
+dydt(1) = y(2); 
+dydt(2) = -(k/M)*y(1) - (C/M)*y(2) + (k/M)*y(3) + (C/M)*y(4) + (F/M); 
+dydt(3) = y(4); 
+dydt(4) = (k/m)*y(1) + (C/m)*y(2) - (k/m)*y(3) - (C/m)*y(4);
+end
